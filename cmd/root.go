@@ -21,7 +21,7 @@ var rootCmd = &cobra.Command{
 		var cacheDir = viper.GetString("output")
 		var namespaces = viper.GetStringSlice("namespaces")
 
-		err := apollo.PullConfigAndSave(cacheDir, server, appId, cluster, namespaces)
+		_, err := apollo.PullConfigAndSave(cacheDir, server, appId, cluster, namespaces)
 		if err != nil {
 			fmt.Println("Pull config go error: ", err.Error())
 			os.Exit(1)
@@ -30,7 +30,10 @@ var rootCmd = &cobra.Command{
 		}
 
 		if viper.GetBool("watch") {
-			err = watch(server, appId, cluster, viper.GetString("notify"), cacheDir, namespaces)
+			err = watch(server, appId, cluster, cacheDir, namespaces, &Notify{
+				Script: viper.GetString("notify"),
+				Url:    viper.GetString("notifyUrl"),
+			})
 			if err != nil {
 				fmt.Println("watch change error, ", err.Error())
 				os.Exit(1)
@@ -53,6 +56,7 @@ var cluster string
 var namespaces []string
 var cacheDir string
 var notify string
+var notifyUrl string
 
 func init() {
 	cobra.OnInitialize(initConfig)
@@ -62,6 +66,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&cluster, "cluster", "c", "default", "Cluster name")
 	rootCmd.PersistentFlags().StringVarP(&cacheDir, "output", "o", "./", "Output path.")
 	rootCmd.PersistentFlags().StringVarP(&notify, "notify", "n", "", "Notify command execute if changed.")
+	rootCmd.PersistentFlags().StringVarP(&notifyUrl, "notifyUrl", "u", "", "Push server if changed.")
 	rootCmd.PersistentFlags().Bool("viper", true, "Use Viper for configuration")
 	rootCmd.PersistentFlags().Bool("watch", false, "Listen for configuration change")
 	rootCmd.PersistentFlags().StringArray("namespace", namespaces, "App namespace, (default: [application])")
@@ -74,6 +79,7 @@ func init() {
 	viper.BindPFlag("namespaces", rootCmd.PersistentFlags().Lookup("namespace"))
 	viper.BindPFlag("useViper", rootCmd.PersistentFlags().Lookup("viper"))
 	viper.BindPFlag("watch", rootCmd.PersistentFlags().Lookup("watch"))
+	viper.BindPFlag("notifyUrl", rootCmd.PersistentFlags().Lookup("notifyUrl"))
 }
 
 func initConfig() {

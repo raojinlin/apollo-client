@@ -40,7 +40,7 @@ func pullConfig(server, appId, cluster, namespace string) (error, *Response) {
 	return nil, &response
 }
 
-func PullConfigBatch(server, appId, cluster string, namespaces []string) (error, []*Response) {
+func PullConfigBatch(server, appId, cluster string, namespaces []string) ([]*Response, error) {
 	var result = make([]*Response, len(namespaces))
 	var wg sync.WaitGroup
 	for i, namespace := range namespaces {
@@ -59,7 +59,7 @@ func PullConfigBatch(server, appId, cluster string, namespaces []string) (error,
 	}
 
 	wg.Wait()
-	return nil, result
+	return result, nil
 }
 
 func save(path string, response *Response) error {
@@ -112,18 +112,18 @@ func save(path string, response *Response) error {
 	return err
 }
 
-func PullConfigAndSave(path, server, appId, cluster string, namespaces []string) error {
-	err, r := PullConfigBatch(server, appId, cluster, namespaces)
+func PullConfigAndSave(path, server, appId, cluster string, namespaces []string) (r []*Response, err error) {
+	r, err = PullConfigBatch(server, appId, cluster, namespaces)
 	if err != nil {
-		return err
+		return
 	}
 
 	for _, item := range r {
 		err = save(path, item)
 		if err != nil {
-			return err
+			return
 		}
 	}
 
-	return nil
+	return
 }

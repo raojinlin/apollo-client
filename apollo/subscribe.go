@@ -9,7 +9,7 @@ import (
 	url2 "net/url"
 )
 
-func Subscribe(server, appId, cluster, cacheDir string, subject []*NotificationRequestPayload, handler func(error, []NotificationResponse)) error {
+func Subscribe(server, appId, cluster, cacheDir string, subject []*NotificationRequestPayload, handler func(error, []NotificationResponse, []*Response)) error {
 	var stop bool
 	for !stop {
 		url := fmt.Sprintf("%s/notifications/v2?appId=%s&cluster=%s&", server, appId, cluster)
@@ -48,12 +48,12 @@ func Subscribe(server, appId, cluster, cacheDir string, subject []*NotificationR
 				}
 			}
 			log.Println("Configuration changed. update local config file.")
-			err = PullConfigAndSave(cacheDir, server, appId, cluster, namespaces)
+			newConfig, err := PullConfigAndSave(cacheDir, server, appId, cluster, namespaces)
 			if err != nil {
 				log.Println("pull and save config failed: ", err)
 			}
 
-			handler(err, notificationResponse)
+			handler(err, notificationResponse, newConfig)
 			resp.Body.Close()
 		} else if resp.StatusCode == 304 {
 			log.Println("No configuration changed, continue check.")

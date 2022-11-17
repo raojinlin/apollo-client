@@ -5,6 +5,7 @@
 ### 特性
 1. 语言无关
 2. 支持dotenv
+3. 配置推送
 
 ### 使用
 
@@ -23,6 +24,7 @@ Flags:
   -h, --help                    help for apollo-client
       --namespace stringArray   App namespace
   -n, --notify string           notify command while config changed.
+  -u, --notifyUrl string        Push to server if config changed.
   -s, --server string           Apollo config server address eg. http://192.168.31.111:8081/
       --viper                   Use Viper for configuration (default true)
       --watch                   Listen for configuration change
@@ -81,3 +83,10 @@ $ ./apollo-client --watch --notify 'echo update'
 | CACHEDIR             | 配置文件的保存路径                     |
 | APPID                | App ID                        |
 | SERVER               | Apollo服务器地址                   |
+
+
+### 监听配置更改并推送到服务器
+指定```notifiyUrl```参数，将最新配置推送到服务器。
+```shell
+$ ./apollo-client --watch --notifyUrl http://127.0.0.1/env/notify
+```

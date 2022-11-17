@@ -1,0 +1,8 @@
+{
+  "name": "@apollo-client-examples/nodejs",
+  "version": "1.0.0",
+  "dependencies": {
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2"
+  }
+}
