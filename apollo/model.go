@@ -21,3 +21,11 @@ type NotificationRequestPayload struct {
 	Cluster        string `json:"cluster"`
 	NotificationId int    `json:"notificationId"`
 }
+
+type Option struct {
+	Server     string   `json:"server"`
+	Cluster    string   `json:"cluster"`
+	AppId      string   `json:"appId"`
+	Namespaces []string `json:"namespaces"`
+	CacheDir   string   `json:"cacheDir"`
+}

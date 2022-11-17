@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/raojinlin/apollo-client/apollo"
+	n "github.com/raojinlin/apollo-client/cmd/notify"
 	"os"
 
 	"github.com/mitchellh/go-homedir"
@@ -21,7 +22,15 @@ var rootCmd = &cobra.Command{
 		var cacheDir = viper.GetString("output")
 		var namespaces = viper.GetStringSlice("namespaces")
 
-		_, err := apollo.PullConfigAndSave(cacheDir, server, appId, cluster, namespaces)
+		var opt = apollo.Option{
+			AppId:      appId,
+			Namespaces: namespaces,
+			Cluster:    cluster,
+			Server:     server,
+			CacheDir:   cacheDir,
+		}
+
+		_, err := apollo.PullConfigAndSave(opt)
 		if err != nil {
 			fmt.Println("Pull config go error: ", err.Error())
 			os.Exit(1)
@@ -30,7 +39,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		if viper.GetBool("watch") {
-			err = watch(server, appId, cluster, cacheDir, namespaces, &Notify{
+			err = watch(opt, &n.Notify{
 				Script: viper.GetString("notify"),
 				Url:    viper.GetString("notifyUrl"),
 			})

@@ -7,12 +7,46 @@ import (
 	"log"
 	"net/http"
 	url2 "net/url"
+	"os"
+	"strconv"
 )
 
-func Subscribe(server, appId, cluster, cacheDir string, subject []*NotificationRequestPayload, handler func(error, []NotificationResponse, []*Response)) error {
+func readNotificationId(opt Option, namespace string) int {
+	path := fmt.Sprintf("/tmp/%s-%s-%s.nid", opt.AppId, opt.Cluster, namespace)
+	file, err := os.OpenFile(path, os.O_RDONLY, os.ModePerm)
+	if err != nil {
+		return -1
+	}
+
+	s, err := io.ReadAll(file)
+	id, err := strconv.Atoi(string(s))
+	if err != nil {
+		return -1
+	}
+
+	return id
+}
+
+func saveNotificationId(opt Option, namespace string, id int) error {
+	path := fmt.Sprintf("/tmp/%s-%s-%s.nid", opt.AppId, opt.Cluster, namespace)
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)
+	defer file.Close()
+	if err != nil {
+		return err
+	}
+
+	_, err = io.WriteString(file, strconv.Itoa(id))
+	return err
+}
+
+func Subscribe(opt Option, subject []*NotificationRequestPayload, handler func(error, []NotificationResponse, []*Response)) error {
 	var stop bool
 	for !stop {
-		url := fmt.Sprintf("%s/notifications/v2?appId=%s&cluster=%s&", server, appId, cluster)
+		url := fmt.Sprintf("%s/notifications/v2?appId=%s&cluster=%s&", opt.Server, opt.AppId, opt.Cluster)
+		for _, payload := range subject {
+			payload.NotificationId = readNotificationId(opt, payload.NamespaceName)
+		}
+
 		notifications, err := json.Marshal(subject)
 		if err != nil {
 			return err
@@ -43,12 +77,16 @@ func Subscribe(server, appId, cluster, cacheDir string, subject []*NotificationR
 				for _, item2 := range notificationResponse {
 					if item2.NamespaceName == item.NamespaceName {
 						item.NotificationId = item2.NotificationId
+						err = saveNotificationId(opt, item.NamespaceName, item2.NotificationId)
+						if err != nil {
+							log.Printf("Error, save %s notification id %d, %s", item.NamespaceName, item.NotificationId, err.Error())
+						}
 						break
 					}
 				}
 			}
 			log.Println("Configuration changed. update local config file.")
-			newConfig, err := PullConfigAndSave(cacheDir, server, appId, cluster, namespaces)
+			newConfig, err := PullConfigAndSave(opt)
 			if err != nil {
 				log.Println("pull and save config failed: ", err)
 			}

@@ -12,12 +12,12 @@ import (
 	"sync"
 )
 
-func pullConfig(server, appId, cluster, namespace string) (error, *Response) {
-	if cluster == "" {
-		cluster = "default"
+func pullConfig(option Option) (error, *Response) {
+	if option.Cluster == "" {
+		option.Cluster = "default"
 	}
 
-	res, err := http.Get(fmt.Sprintf("%s/configs/%s/%s/%s", server, appId, cluster, namespace))
+	res, err := http.Get(fmt.Sprintf("%s/configs/%s/%s/%s", option.Server, option.AppId, option.Cluster, option.Namespaces[0]))
 	if err != nil {
 		return err, nil
 	}
@@ -40,16 +40,18 @@ func pullConfig(server, appId, cluster, namespace string) (error, *Response) {
 	return nil, &response
 }
 
-func PullConfigBatch(server, appId, cluster string, namespaces []string) ([]*Response, error) {
-	var result = make([]*Response, len(namespaces))
+func PullConfigBatch(option Option) ([]*Response, error) {
+	var result = make([]*Response, len(option.Namespaces))
 	var wg sync.WaitGroup
-	for i, namespace := range namespaces {
+	for i, namespace := range option.Namespaces {
 		wg.Add(1)
 		go func(j int, ns string) {
 			defer func() {
 				wg.Done()
 			}()
-			err, r := pullConfig(server, appId, cluster, ns)
+			pn := option
+			pn.Namespaces = []string{ns}
+			err, r := pullConfig(pn)
 			if err != nil {
 				result[j] = nil
 			} else {
@@ -62,8 +64,12 @@ func PullConfigBatch(server, appId, cluster string, namespaces []string) ([]*Res
 	return result, nil
 }
 
+func getOutputFile(response *Response) string {
+	return strings.Join([]string{response.AppId, response.Cluster, response.NamespaceName}, "-") + ".env"
+}
+
 func save(path string, response *Response) error {
-	path = path2.Join(path, response.NamespaceName+".env")
+	path = path2.Join(path, getOutputFile(response))
 	info, _ := os.Stat(path)
 
 	if info != nil && info.IsDir() {
@@ -112,14 +118,14 @@ func save(path string, response *Response) error {
 	return err
 }
 
-func PullConfigAndSave(path, server, appId, cluster string, namespaces []string) (r []*Response, err error) {
-	r, err = PullConfigBatch(server, appId, cluster, namespaces)
+func PullConfigAndSave(option Option) (r []*Response, err error) {
+	r, err = PullConfigBatch(option)
 	if err != nil {
 		return
 	}
 
 	for _, item := range r {
-		err = save(path, item)
+		err = save(option.CacheDir, item)
 		if err != nil {
 			return
 		}
