@@ -1,0 +1,10 @@
+server: <apolloconfigserver>
+watch: False
+appId: <app-id>
+cluster: default
+notify: |
+  env
+  echo updated
+notify_url: http://127.0.0.1:3000/apollo-config/notify
+namespaces:
+  - application
