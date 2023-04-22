@@ -9,15 +9,19 @@ import (
 	"net/http"
 )
 
-func pushToServer(url string, config []*apollo.Response) error {
+type HTTPNotification struct {
+	NotifyUrl string
+}
+
+func (h *HTTPNotification) Notify(opt *apollo.Option, response []apollo.NotificationResponse, config []*apollo.Response) error {
 	j, err := json.Marshal(config)
 	if err != nil {
 		return err
 	}
 
-	log.Println("Push change to server: ", url)
+	log.Println("Push change to server: ", h.NotifyUrl)
 	body := bytes.NewReader(j)
-	res, err := http.Post(url, "application/json", body)
+	res, err := http.Post(h.NotifyUrl, "application/json", body)
 	if err != nil {
 		return err
 	}
@@ -27,4 +31,8 @@ func pushToServer(url string, config []*apollo.Response) error {
 	}
 
 	return nil
+}
+
+func NewHttpNotification(url string) *HTTPNotification {
+	return &HTTPNotification{NotifyUrl: url}
 }

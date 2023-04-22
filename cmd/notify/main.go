@@ -19,7 +19,7 @@ func Push(opt *apollo.Option, notify *Notify, response []apollo.NotificationResp
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			err = execNotifyScript(opt, notify.Script, response)
+			err = NewScriptNotification(notify.Script).Notify(opt, response, config)
 		}()
 	}
 
@@ -27,7 +27,7 @@ func Push(opt *apollo.Option, notify *Notify, response []apollo.NotificationResp
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			err = pushToServer(notify.Url, config)
+			err = NewHttpNotification(notify.Url).Notify(opt, response, config)
 			if err != nil {
 				log.Println("Push to ", notify.Url, "failed", err.Error())
 			}

@@ -30,7 +30,6 @@ func readNotificationId(opt Option, namespace string) int {
 func saveNotificationId(opt Option, namespace string, id int) error {
 	path := fmt.Sprintf("/tmp/%s-%s-%s.nid", opt.AppId, opt.Cluster, namespace)
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)
-	defer file.Close()
 	if err != nil {
 		return err
 	}

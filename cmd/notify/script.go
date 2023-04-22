@@ -14,16 +14,18 @@ import (
 	"strings"
 )
 
-var scriptPath = "/tmp"
-
-func generateScriptName(notify string) string {
-	s := md5.New().Sum(bytes.NewBufferString(notify).Bytes())
-	return path2.Join(scriptPath, "apollo-notify-"+hex.EncodeToString(s)+".sh")
+type ScriptNotification struct {
+	Script string
+	Path   string
 }
 
-func createNotifyScript(content, script string) error {
-	file, err := os.OpenFile(script, os.O_CREATE|os.O_RDWR, os.ModePerm)
-	defer file.Close()
+func (s *ScriptNotification) generateScriptName() string {
+	content := md5.New().Sum(bytes.NewBufferString(s.Script).Bytes())
+	return path2.Join(s.Path, "apollo-notify-"+hex.EncodeToString(content)+".sh")
+}
+
+func (s *ScriptNotification) createNotifyScript(scriptName string) error {
+	file, err := os.OpenFile(scriptName, os.O_CREATE|os.O_RDWR, os.ModePerm)
 
 	if errors.Is(err, os.ErrExist) {
 		return nil
@@ -37,17 +39,18 @@ func createNotifyScript(content, script string) error {
 	if err != nil {
 		return err
 	}
-	_, err = file.WriteString(content)
+	_, err = file.WriteString(s.Script)
 	return err
 }
 
-func execNotifyScript(option *apollo.Option, script string, response []apollo.NotificationResponse) error {
+func (s *ScriptNotification) Notify(opt *apollo.Option, response []apollo.NotificationResponse, config []*apollo.Response) error {
+	script := s.Script
 	if script == "" {
 		return nil
 	}
 
-	scriptName := generateScriptName(script)
-	err := createNotifyScript(script, scriptName)
+	scriptName := s.generateScriptName()
+	err := s.createNotifyScript(scriptName)
 	if err != nil {
 		return err
 	}
@@ -62,10 +65,10 @@ func execNotifyScript(option *apollo.Option, script string, response []apollo.No
 	cmd.Env = []string{
 		"PATH=" + os.Getenv("PATH"),
 		"NAMESPACES=" + strings.Join(names, ","),
-		"CACHEDIR=" + option.CacheDir,
-		"APPID=" + option.AppId,
-		"CLUSTER=" + option.Cluster,
-		"SERVER=" + option.Server,
+		"CACHEDIR=" + opt.CacheDir,
+		"APPID=" + opt.AppId,
+		"CLUSTER=" + opt.Cluster,
+		"SERVER=" + opt.Server,
 	}
 	output, err := cmd.Output()
 	if err != nil {
@@ -75,4 +78,11 @@ func execNotifyScript(option *apollo.Option, script string, response []apollo.No
 	}
 
 	return err
+}
+
+func NewScriptNotification(script string) *ScriptNotification {
+	return &ScriptNotification{
+		Script: script,
+		Path:   "/tmp/",
+	}
 }
